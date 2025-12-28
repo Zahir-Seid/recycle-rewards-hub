@@ -29,8 +29,15 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
-    if not user or user.password != data.password:
-        return {"error": "invalid credentials"}
+    
+    # Check if user exists
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Check if password matches
+    if user.password != data.password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
     return {"access_token": create_token(user.id)}
 
 @router.post("/start-session")
