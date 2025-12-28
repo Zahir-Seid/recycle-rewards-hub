@@ -2,15 +2,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Recycle, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Recycle, Mail, Lock, User, ArrowRight, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { api, ApiError } from "@/lib/api";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [faydaNumber, setFaydaNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,18 +22,49 @@ const AuthPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate authentication
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast({
-      title: isLogin ? "Welcome back!" : "Account created!",
-      description: isLogin 
-        ? "You've successfully logged in." 
-        : "Your account has been created successfully.",
-    });
-
-    setIsLoading(false);
-    navigate("/dashboard");
+    try {
+      if (isLogin) {
+        const response = await api.login({ email, password });
+        localStorage.setItem("token", response.access_token);
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully logged in.",
+        });
+        navigate("/dashboard");
+      } else {
+        await api.register({
+          email,
+          password,
+          full_name: fullName,
+          fayda_number: faydaNumber,
+          phone_number: phoneNumber,
+        });
+        toast({
+          title: "Account created!",
+          description: "Your account has been created successfully. Please log in.",
+        });
+        setIsLogin(true);
+        setFullName("");
+        setFaydaNumber("");
+        setPhoneNumber("");
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,20 +98,50 @@ const AuthPage = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2 animate-fade-in">
-                  <label className="text-sm font-medium text-foreground">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="John Doe"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="pl-10"
-                      required={!isLogin}
-                    />
+                <>
+                  <div className="space-y-2 animate-fade-in">
+                    <label className="text-sm font-medium text-foreground">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="John Doe"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="pl-10"
+                        required={!isLogin}
+                      />
+                    </div>
                   </div>
-                </div>
+                  <div className="space-y-2 animate-fade-in">
+                    <label className="text-sm font-medium text-foreground">Fayda Number</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Enter your Fayda number"
+                        value={faydaNumber}
+                        onChange={(e) => setFaydaNumber(e.target.value)}
+                        className="pl-10"
+                        required={!isLogin}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 animate-fade-in">
+                    <label className="text-sm font-medium text-foreground">Phone Number</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="tel"
+                        placeholder="+966 5XX XXX XXXX"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="pl-10"
+                        required={!isLogin}
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="space-y-2">

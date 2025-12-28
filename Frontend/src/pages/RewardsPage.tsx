@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   ArrowLeft, 
-  Gift, 
-  Coffee, 
-  ShoppingBag, 
-  Ticket, 
   Leaf,
+  Sprout,
+  Waves,
+  Trash2,
+  Sun,
+  Wind,
+  DollarSign,
   Check
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -16,68 +18,123 @@ import { useToast } from "@/hooks/use-toast";
 const rewards = [
   {
     id: 1,
-    name: "Coffee Voucher",
-    description: "Free medium coffee at partner cafes",
-    points: 500,
-    icon: Coffee,
-    category: "Food & Drink",
+    name: "Plant a Tree",
+    description: "We plant a tree in your name to restore forests",
+    points: 300,
+    icon: Leaf,
+    category: "Eco Impact",
   },
   {
     id: 2,
-    name: "Shopping Discount",
-    description: "10% off at eco-friendly stores",
-    points: 750,
-    icon: ShoppingBag,
-    category: "Shopping",
+    name: "Beach Cleanup",
+    description: "Sponsor a beach cleanup event in your area",
+    points: 400,
+    icon: Waves,
+    category: "Ocean Conservation",
   },
   {
     id: 3,
-    name: "Movie Ticket",
-    description: "Standard cinema ticket",
-    points: 1000,
-    icon: Ticket,
-    category: "Entertainment",
+    name: "Community Garden",
+    description: "Support a local community garden project",
+    points: 500,
+    icon: Sprout,
+    category: "Community Impact",
   },
   {
     id: 4,
-    name: "Plant a Tree",
-    description: "We plant a tree in your name",
-    points: 300,
-    icon: Leaf,
-    category: "Environment",
+    name: "Waste Collection Drive",
+    description: "Fund a waste collection and recycling drive",
+    points: 600,
+    icon: Trash2,
+    category: "Waste Management",
   },
   {
     id: 5,
-    name: "Gift Card $10",
-    description: "Universal gift card",
-    points: 1500,
-    icon: Gift,
-    category: "Gift Cards",
+    name: "Solar Panel Initiative",
+    description: "Contribute to solar panel installation projects",
+    points: 800,
+    icon: Sun,
+    category: "Renewable Energy",
+  },
+  {
+    id: 6,
+    name: "Wind Energy Support",
+    description: "Support wind energy development programs",
+    points: 1000,
+    icon: Wind,
+    category: "Renewable Energy",
+  },
+  {
+    id: 7,
+    name: "Cash Out",
+    description: "Redeem points for money (SAR 10 = 1000 points)",
+    points: 1000,
+    icon: DollarSign,
+    category: "Money",
   },
 ];
 
 const RewardsPage = () => {
-  const [userPoints] = useState(1250);
+  const [userPoints, setUserPoints] = useState(1250);
   const [redeemedId, setRedeemedId] = useState<number | null>(null);
+  const [isRedeeming, setIsRedeeming] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleRedeem = (reward: typeof rewards[0]) => {
-    if (userPoints >= reward.points) {
-      setRedeemedId(reward.id);
-      setTimeout(() => {
-        toast({
-          title: "Reward Redeemed!",
-          description: `You've successfully redeemed ${reward.name}. Check your email for details.`,
-        });
-        setRedeemedId(null);
-      }, 1500);
-    } else {
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth");
+    }
+  }, [navigate]);
+
+  const handleRedeem = async (reward: typeof rewards[0]) => {
+    if (userPoints < reward.points) {
       toast({
         title: "Not Enough Points",
         description: `You need ${reward.points - userPoints} more points for this reward.`,
         variant: "destructive",
       });
+      return;
+    }
+
+    setIsRedeeming(true);
+    setRedeemedId(reward.id);
+
+    // Simulate redemption process with dummy API call
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      // Simulate successful redemption
+      const success = Math.random() > 0.1; // 90% success rate for simulation
+      
+      if (success) {
+        setUserPoints((prev) => prev - reward.points);
+        const isCashOut = reward.id === 7;
+        toast({
+          title: "Reward Redeemed!",
+          description: isCashOut 
+            ? `You've successfully redeemed ${reward.name}. SAR ${reward.points / 100} will be transferred to your account within 24 hours.`
+            : `You've successfully redeemed ${reward.name}. Thank you for your eco-friendly contribution!`,
+        });
+      } else {
+        toast({
+          title: "Redemption Failed",
+          description: "Something went wrong. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred during redemption.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRedeeming(false);
+      setRedeemedId(null);
     }
   };
 
@@ -141,11 +198,16 @@ const RewardsPage = () => {
                           <Button
                             size="sm"
                             variant={canAfford ? "reward" : "secondary"}
-                            disabled={!canAfford || isRedeeming}
+                            disabled={!canAfford || (isRedeeming && redeemedId === reward.id)}
                             onClick={() => handleRedeem(reward)}
                             className="min-w-[80px]"
                           >
-                            {isRedeeming ? (
+                            {isRedeeming && redeemedId === reward.id ? (
+                              <span className="flex items-center gap-2">
+                                <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                Processing...
+                              </span>
+                            ) : redeemedId === reward.id ? (
                               <Check className="w-4 h-4 animate-scale-in" />
                             ) : canAfford ? (
                               "Redeem"

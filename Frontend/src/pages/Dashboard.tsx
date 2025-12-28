@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,39 +16,106 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import SessionTracker from "@/components/SessionTracker";
 import DepositHistory from "@/components/DepositHistory";
+import { api, ApiError } from "@/lib/api";
 
 const Dashboard = () => {
   const [showStartSession, setShowStartSession] = useState(false);
   const [machineCode, setMachineCode] = useState("");
+  const [machineId, setMachineId] = useState("");
   const [activeSession, setActiveSession] = useState(false);
+  const [sessionCode, setSessionCode] = useState("");
   const [points, setPoints] = useState(1250);
   const [deposits, setDeposits] = useState({ bottles: 0, cans: 0 });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleStartSession = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth");
+    }
+  }, [navigate]);
+
+  const handleStartSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (machineCode.length >= 4) {
-      setActiveSession(true);
-      setShowStartSession(false);
-      toast({
-        title: "Session Started!",
-        description: `Connected to machine ${machineCode}. Start depositing!`,
-      });
+      setIsLoading(true);
+      try {
+        // Generate a random machine ID if not provided
+        const currentMachineId = machineId || `MACHINE-${Date.now()}`;
+        // Generate a session code
+        const code = machineCode.toUpperCase();
+        
+        // Start session on backend
+        await api.startSession({
+          machine_id: currentMachineId,
+          code: code,
+        });
+
+        // Bind session to user
+        await api.bindSession({ code: code });
+
+        setMachineId(currentMachineId);
+        setSessionCode(code);
+        setActiveSession(true);
+        setShowStartSession(false);
+        toast({
+          title: "Session Started!",
+          description: `Connected to machine. Start depositing!`,
+        });
+      } catch (error) {
+        if (error instanceof ApiError) {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to start session",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleDeposit = (type: "bottle" | "can") => {
-    const pointsEarned = type === "bottle" ? 10 : 5;
-    setPoints((prev) => prev + pointsEarned);
-    setDeposits((prev) => ({
-      ...prev,
-      [type === "bottle" ? "bottles" : "cans"]: prev[type === "bottle" ? "bottles" : "cans"] + 1,
-    }));
-    toast({
-      title: `+${pointsEarned} points!`,
-      description: `${type === "bottle" ? "Bottle" : "Can"} deposited successfully`,
-    });
+  const handleDeposit = async (type: "bottle" | "can") => {
+    if (!activeSession || !sessionCode || !machineId) {
+      toast({
+        title: "Error",
+        description: "No active session",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const count = 1;
+      await api.deposit({
+        machine_id: machineId,
+        code: sessionCode,
+        count: count,
+      });
+
+      const pointsEarned = type === "bottle" ? 10 : 5;
+      setPoints((prev) => prev + pointsEarned);
+      setDeposits((prev) => ({
+        ...prev,
+        [type === "bottle" ? "bottles" : "cans"]: prev[type === "bottle" ? "bottles" : "cans"] + 1,
+      }));
+      toast({
+        title: `+${pointsEarned} points!`,
+        description: `${type === "bottle" ? "Bottle" : "Can"} deposited successfully`,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to deposit",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const handleEndSession = () => {
@@ -77,7 +144,10 @@ const Dashboard = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate("/")}
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/auth");
+            }}
             className="text-muted-foreground hover:text-foreground"
           >
             <LogOut className="w-5 h-5" />
@@ -119,7 +189,7 @@ const Dashboard = () => {
             deposits={deposits} 
             onDeposit={handleDeposit} 
             onEndSession={handleEndSession}
-            machineCode={machineCode}
+            machineCode={sessionCode}
           />
         ) : (
           <Card 
@@ -168,9 +238,18 @@ const Dashboard = () => {
                     maxLength={6}
                     autoFocus
                   />
-                  <Button type="submit" size="lg" className="w-full" disabled={machineCode.length < 4}>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Connect to Machine
+                  <Button type="submit" size="lg" className="w-full" disabled={machineCode.length < 4 || isLoading}>
+                    {isLoading ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        Connecting...
+                      </span>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Connect to Machine
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>
