@@ -21,7 +21,6 @@ import { api, ApiError } from "@/lib/api";
 const Dashboard = () => {
   const [showStartSession, setShowStartSession] = useState(false);
   const [machineCode, setMachineCode] = useState("");
-  const [machineId, setMachineId] = useState("");
   const [activeSession, setActiveSession] = useState(false);
   const [sessionCode, setSessionCode] = useState("");
   const [points, setPoints] = useState(1250);
@@ -31,33 +30,21 @@ const Dashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is authenticated
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/auth");
-    }
+    if (!token) navigate("/auth");
   }, [navigate]);
 
-  const handleStartSession = async (e: React.FormEvent) => {
+  const handleBindSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (machineCode.length >= 4) {
       setIsLoading(true);
       try {
-        // Generate a random machine ID if not provided
-        const currentMachineId = machineId || `MACHINE-${Date.now()}`;
-        // Generate a session code
         const code = machineCode.toUpperCase();
-        
-        // Start session on backend
-        await api.startSession({
-          machine_id: currentMachineId,
-          code: code,
-        });
+        const machineId = "123"; // Fixed machine ID
 
-        // Bind session to user
-        await api.bindSession({ code: code });
+        // Only bind the session (ESP already created it)
+        await api.bindSession({ code });
 
-        setMachineId(currentMachineId);
         setSessionCode(code);
         setActiveSession(true);
         setShowStartSession(false);
@@ -69,7 +56,7 @@ const Dashboard = () => {
         if (error instanceof ApiError) {
           toast({
             title: "Error",
-            description: error.message || "Failed to start session",
+            description: error.message || "Failed to bind session",
             variant: "destructive",
           });
         }
@@ -80,7 +67,7 @@ const Dashboard = () => {
   };
 
   const handleDeposit = async (type: "bottle" | "can") => {
-    if (!activeSession || !sessionCode || !machineId) {
+    if (!activeSession || !sessionCode) {
       toast({
         title: "Error",
         description: "No active session",
@@ -92,14 +79,14 @@ const Dashboard = () => {
     try {
       const count = 1;
       await api.deposit({
-        machine_id: machineId,
+        machine_id: "123",
         code: sessionCode,
-        count: count,
+        count,
       });
 
       const pointsEarned = type === "bottle" ? 10 : 5;
-      setPoints((prev) => prev + pointsEarned);
-      setDeposits((prev) => ({
+      setPoints(prev => prev + pointsEarned);
+      setDeposits(prev => ({
         ...prev,
         [type === "bottle" ? "bottles" : "cans"]: prev[type === "bottle" ? "bottles" : "cans"] + 1,
       }));
@@ -158,8 +145,6 @@ const Dashboard = () => {
       <main className="container py-6 space-y-6">
         {/* Points Card */}
         <Card className="eco-gradient border-0 text-primary-foreground overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-foreground/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-foreground/10 rounded-full translate-y-1/2 -translate-x-1/2" />
           <CardHeader className="pb-2">
             <CardTitle className="text-primary-foreground/80 font-medium text-sm flex items-center gap-2">
               <Coins className="w-4 h-4" />
@@ -174,7 +159,7 @@ const Dashboard = () => {
             <Button 
               variant="glass" 
               size="sm" 
-              className="mt-4 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground border-primary-foreground/20"
+              className="mt-4"
               onClick={() => navigate("/rewards")}
             >
               <Gift className="w-4 h-4 mr-2" />
@@ -228,7 +213,7 @@ const Dashboard = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleStartSession} className="space-y-4">
+                <form onSubmit={handleBindSession} className="space-y-4">
                   <Input
                     type="text"
                     placeholder="Enter machine code (e.g., A1B2)"
