@@ -18,10 +18,11 @@ class MachineSession(Base):
 
     id = Column(Integer, primary_key=True)
     machine_id = Column(String, index=True)
-    code = Column(String, unique=True, index=True)
+    code = Column(String, index=True) 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     status = Column(String, default="PENDING")  # PENDING | ACTIVE | USED
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True))  
 
 
 class Deposit(Base):

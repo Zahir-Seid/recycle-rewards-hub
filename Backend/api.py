@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from deps import get_db
 from models import User, MachineSession, Deposit
 from schemas import UserCreate, UserLogin, BindSession, StartSession, DepositCreate, SessionStatusResponse
 from auth import create_token
 from deps import get_current_user
+from datetime import datetime, timedelta
+
 
 router = APIRouter(prefix="/api")
 
@@ -42,13 +45,25 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/start-session")
 def start_session(data: StartSession, db: Session = Depends(get_db)):
-    session = MachineSession(
+    # check if an active, non-expired session with this code exists
+    existing = db.query(MachineSession).filter(
+        MachineSession.code == data.code,
+        MachineSession.expires_at > datetime.utcnow()
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Code is already in use")
+
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+
+    session_obj = MachineSession(
         machine_id=data.machine_id,
-        code=data.code
+        code=data.code,
+        expires_at=expires_at
     )
-    db.add(session)
+    db.add(session_obj)
     db.commit()
-    return {"message": "session created"}
+    db.refresh(session_obj)
+    return {"message": "session created", "session_id": session_obj.id}
 
 @router.get("/session-status", response_model=SessionStatusResponse)
 def session_status(code: str, db: Session = Depends(get_db)):
