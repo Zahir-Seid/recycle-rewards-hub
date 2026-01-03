@@ -25,7 +25,7 @@ const Index = () => {
       <Recycle className="w-6 h-6 text-primary-foreground" />
     </div>
     <span className="text-2xl md:text-3xl font-bold text-foreground">
-      EcoRecycle
+      ReCycleX
     </span>
   </div>
 
@@ -208,7 +208,7 @@ const Index = () => {
       <footer className="container py-8 border-t border-border/50">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>
-            © 2025 EcoRecycle. Making recycling rewarding.
+            © 2025 ReCycleX. Making recycling rewarding.
           </p>
           <div className="flex gap-6">
             <a className="hover:text-foreground" href="#">

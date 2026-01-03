@@ -126,7 +126,7 @@ const Dashboard = () => {
             <div className="w-10 h-10 rounded-xl eco-gradient flex items-center justify-center">
               <Recycle className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">EcoRecycle</span>
+            <span className="text-xl font-bold text-foreground">ReCycleX</span>
           </div>
           <Button 
             variant="ghost" 

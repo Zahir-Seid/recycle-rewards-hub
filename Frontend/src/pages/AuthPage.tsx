@@ -108,7 +108,7 @@ const AuthPage = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl eco-gradient shadow-glow mb-4">
             <Recycle className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">EcoRecycle</h1>
+          <h1 className="text-3xl font-bold text-foreground">ReCycleX</h1>
           <p className="text-muted-foreground mt-2">
             Turn your recyclables into rewards
           </p>
