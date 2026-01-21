@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://recycle-rewards-hub.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://recycle-rewards-hub-2oj4.onrender.com";
 
 interface RegisterData {
   email: string;
